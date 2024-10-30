@@ -18,7 +18,7 @@ export function Header() {
               </a>
             </li>
             <li>
-              <a href="/" className="hover:underline">
+              <a href="/alugueis" className="hover:underline">
                 Seus Aluguéis
               </a>
             </li>

@@ -12,7 +12,8 @@ export default function Router() {
       <Route path="/register" element={<Register />} />
       <Route path="/" element={<DefaultLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="adicionar" element={<AdicionarCarro />} />
+        <Route path="/adicionar" element={<AdicionarCarro />} />
+        <Route path="/alugueis" element={<h1>MEUS ALUGUEIS</h1>} />
       </Route>
     </Routes>
   )
