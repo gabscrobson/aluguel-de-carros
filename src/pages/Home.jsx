@@ -1,61 +1,74 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, Calendar } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/authContext'
-
-const cars = [
-  {
-    id: 1,
-    nome: 'Sedan Luxo',
-    cor: 'Preto',
-    estado: 'Disponível',
-    preco_atual: 150,
-    imagens: 'https://img2.icarros.com/dbimg/imgnoticia/4/28217_1',
-  },
-  {
-    id: 2,
-    nome: 'SUV Familiar',
-    cor: 'Prata',
-    estado: 'Disponível',
-    preco_atual: 200,
-    imagens:
-      'https://www.jornalcruzeiro.com.br/_midias/jpg/2021/09/08/carros_para_familias_grandes_1-759395.jpg',
-  },
-  {
-    id: 3,
-    nome: 'Compacto Econômico',
-    cor: 'Branco',
-    estado: 'Disponível',
-    preco_atual: 100,
-    imagens:
-      'https://cdn.motor1.com/images/mgl/lEmjGg/s3/chevrolet-tracker-rs-2024.jpg',
-  },
-  {
-    id: 4,
-    nome: 'HB20',
-    cor: 'Cinza',
-    estado: 'Disponível',
-    preco_atual: 120,
-    imagens:
-      'https://www.comprecar.com.br/storage/news/featured/4d8c862f-7f49-4960-9986-7cfb682702b5.jpeg',
-  },
-]
+import { CarCard } from '../components/CarCard'
+import { database } from '../firebase/firebase'
+import { ref, get, push } from 'firebase/database'
+import { toast } from 'react-toastify'
 
 export function Home() {
-  const { userLoggedIn } = useAuth()
+  const { currentUser, userLoggedIn } = useAuth()
 
+  const [cars, setCars] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
-  const filteredCars = cars.filter((car) =>
-    car.nome.toLowerCase().includes(searchTerm.toLowerCase()),
+  useEffect(() => {
+    const fetchCars = async () => {
+      const carsRef = ref(database, 'carros')
+      const snapshot = await get(carsRef)
+      if (snapshot.exists()) {
+        const carsData = snapshot.val()
+        const carsArray = Object.keys(carsData).map((key) => ({
+          id: key,
+          ...carsData[key],
+        }))
+        setCars(carsArray)
+        console.log(carsArray)
+      } else {
+        console.log('No data available')
+      }
+    }
+
+    fetchCars()
+  }, [])
+
+  const filteredCars = cars.filter(
+    (car) =>
+      car.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      car.cor.toLowerCase().includes(searchTerm.toLowerCase()),
   )
+
+  const handleRent = async (car) => {
+    if (!startDate || !endDate) {
+      alert('Please select start and end dates')
+      return
+    }
+
+    const rentalRef = ref(database, `usuarios/${currentUser.uid}/alugueis`)
+    console.log(car)
+    const newRental = {
+      startDate,
+      endDate,
+      carRef: car.id,
+      price: car.precoAtual,
+    }
+
+    try {
+      await push(rentalRef, newRental)
+      toast.success('Carro reservado com sucesso!')
+    } catch (error) {
+      toast.error('Error reserving car:', error)
+      console.error('Error reserving car:', error)
+    }
+  }
 
   return (
     <>
       {!userLoggedIn && <Navigate to={'/login'} replace={true} />}
-      <main className="container mx-auto mt-8 mb-8">
+      <main className="container mx-auto mt-8 mb-8 w-11/12">
         <section className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-semibold mb-4 text-black">
             Encontre o carro perfeito
@@ -125,27 +138,7 @@ export function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCars.map((car) => (
-              <div
-                key={car.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden"
-              >
-                <img
-                  src={car.imagens}
-                  alt={car.nome}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <h3 className="text-xl font-semibold mb-2">{car.nome}</h3>
-                  <p className="text-gray-600 mb-2">Cor: {car.cor}</p>
-                  <p className="text-gray-600 mb-2">Estado: {car.estado}</p>
-                  <p className="text-lg font-bold text-blue-600">
-                    R$ {car.preco_atual}/dia
-                  </p>
-                  <button className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
-                    Reservar agora
-                  </button>
-                </div>
-              </div>
+              <CarCard key={car.id} {...car} onClick={handleRent} />
             ))}
           </div>
         </section>

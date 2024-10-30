@@ -4,6 +4,7 @@ import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { AdicionarCarro } from './pages/AdicionarCarro'
+import { MeusAlugueis } from './pages/MeusAlugueis'
 
 export default function Router() {
   return (
@@ -13,7 +14,7 @@ export default function Router() {
       <Route path="/" element={<DefaultLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/adicionar" element={<AdicionarCarro />} />
-        <Route path="/alugueis" element={<h1>MEUS ALUGUEIS</h1>} />
+        <Route path="/alugueis" element={<MeusAlugueis />} />
       </Route>
     </Routes>
   )

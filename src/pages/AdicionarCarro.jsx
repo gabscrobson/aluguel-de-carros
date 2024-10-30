@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import { Upload, X, Plus } from 'lucide-react'
+import { database } from '../firebase/firebase'
+import { ref, push } from 'firebase/database'
+import ImageUrlManager from '../components/ImageUrlManager'
+import { toast } from 'react-toastify'
 
 export function AdicionarCarro() {
   const [carData, setCarData] = useState({
     nome: '',
     cor: '',
     estado: 'disponivel',
-    preco_atual: '',
+    precoAtual: '',
   })
 
-  const [images, setImages] = useState([])
-  const [previewUrls, setPreviewUrls] = useState([])
-  const [isDragging, setIsDragging] = useState(false)
+  const [imageUrls, setImageUrls] = useState([])
   const [errors, setErrors] = useState({})
 
   const handleInputChange = (e) => {
@@ -28,52 +29,6 @@ export function AdicionarCarro() {
     }
   }
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files)
-    handleFiles(files)
-  }
-
-  const handleFiles = (files) => {
-    const newImages = [...images]
-    const newPreviewUrls = [...previewUrls]
-
-    files.forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        newImages.push(file)
-        newPreviewUrls.push(URL.createObjectURL(file))
-      }
-    })
-
-    setImages(newImages)
-    setPreviewUrls(newPreviewUrls)
-  }
-
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const files = Array.from(e.dataTransfer.files)
-    handleFiles(files)
-  }
-
-  const removeImage = (index) => {
-    const newImages = images.filter((_, i) => i !== index)
-    const newPreviewUrls = previewUrls.filter((_, i) => i !== index)
-
-    URL.revokeObjectURL(previewUrls[index])
-    setImages(newImages)
-    setPreviewUrls(newPreviewUrls)
-  }
-
   const validateForm = () => {
     const newErrors = {}
 
@@ -85,11 +40,11 @@ export function AdicionarCarro() {
       newErrors.cor = 'Cor é obrigatória'
     }
 
-    if (!carData.preco_atual || carData.preco_atual <= 0) {
-      newErrors.preco_atual = 'Preço deve ser maior que zero'
+    if (!carData.precoAtual || carData.precoAtual <= 0) {
+      newErrors.precoAtual = 'Preço deve ser maior que zero'
     }
 
-    if (images.length === 0) {
+    if (imageUrls.length === 0) {
       newErrors.images = 'Adicione pelo menos uma imagem'
     }
 
@@ -97,13 +52,26 @@ export function AdicionarCarro() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Aqui você implementaria a lógica para enviar os dados para o servidor
+      await push(ref(database, 'carros'), {
+        ...carData,
+        imagens: imageUrls,
+      })
+
+      toast.success('Carro adicionado com sucesso')
+
+      setCarData({
+        nome: '',
+        cor: '',
+        estado: 'disponivel',
+        precoAtual: '',
+      })
+      setImageUrls([])
+
       console.log('Dados do carro:', carData)
-      console.log('Imagens:', images)
     }
   }
 
@@ -116,7 +84,7 @@ export function AdicionarCarro() {
               Adicionar Novo Carro
             </h1>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form className="space-y-6">
               <div className="space-y-4">
                 <div>
                   <label
@@ -192,7 +160,7 @@ export function AdicionarCarro() {
 
                 <div>
                   <label
-                    htmlFor="preco_atual"
+                    htmlFor="precoAtual"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Preço por Dia (R$)
@@ -200,23 +168,21 @@ export function AdicionarCarro() {
                   <div className="relative">
                     <input
                       type="number"
-                      id="preco_atual"
-                      name="preco_atual"
-                      value={carData.preco_atual}
+                      id="precoAtual"
+                      name="precoAtual"
+                      value={carData.precoAtual}
                       onChange={handleInputChange}
                       className={`w-full px-3 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.preco_atual
-                          ? 'border-red-500'
-                          : 'border-gray-300'
+                        errors.precoAtual ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="0.00"
                       min="0"
                       step="0.01"
                     />
                   </div>
-                  {errors.preco_atual && (
+                  {errors.precoAtual && (
                     <p className="mt-1 text-sm text-red-500">
-                      {errors.preco_atual}
+                      {errors.precoAtual}
                     </p>
                   )}
                 </div>
@@ -225,73 +191,18 @@ export function AdicionarCarro() {
                   <span className="block text-sm font-medium text-gray-700 mb-1">
                     Fotos do Carro
                   </span>
-                  <div
-                    className={`mt-2 border-2 border-dashed rounded-lg p-6 text-center ${
-                      isDragging
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    <input
-                      type="file"
-                      id="images"
-                      multiple
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageUpload}
-                    />
-                    <label htmlFor="images" className="cursor-pointer">
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-8 h-8 text-gray-400" />
-                        <span className="text-sm text-gray-500">
-                          Arraste e solte as imagens aqui ou clique para
-                          selecionar
-                        </span>
-                      </div>
-                    </label>
-                  </div>
+                  <ImageUrlManager
+                    imageUrls={imageUrls}
+                    setImageUrls={setImageUrls}
+                  />
                   {errors.images && (
                     <p className="mt-1 text-sm text-red-500">{errors.images}</p>
-                  )}
-
-                  {previewUrls.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {previewUrls.map((url, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={url}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                      <label
-                        htmlFor="images"
-                        className="w-full h-32 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50"
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          <Plus className="w-6 h-6 text-gray-400" />
-                          <span className="text-sm text-gray-500">
-                            Adicionar mais
-                          </span>
-                        </div>
-                      </label>
-                    </div>
                   )}
                 </div>
               </div>
 
               <button
+                onClick={handleSubmit}
                 type="submit"
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center gap-2"
               >

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Navigate, Link } from 'react-router-dom'
 import { login, loginWithGoogle } from '../firebase/auth'
 import { useAuth } from '../contexts/authContext'
+import { toast } from 'react-toastify'
 
 export function Login() {
   const { userLoggedIn } = useAuth()
@@ -15,7 +16,15 @@ export function Login() {
     e.preventDefault()
     if (!isSigningIn) {
       setIsSigningIn(true)
-      await login(email, password)
+      try {
+        await login(email, password)
+      } catch (error) {
+        toast.error('Erro ao fazer login')
+        console.error('Error signing in:', error)
+        setIsSigningIn(false)
+      } finally {
+        setIsSigningIn(false)
+      }
     }
   }
 
