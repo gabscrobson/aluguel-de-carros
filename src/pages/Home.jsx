@@ -48,7 +48,6 @@ export function Home() {
     }
 
     const rentalRef = ref(database, `usuarios/${currentUser.uid}/alugueis`)
-    console.log(car)
     const newRental = {
       startDate,
       endDate,
@@ -57,10 +56,16 @@ export function Home() {
     }
 
     try {
-      await push(rentalRef, newRental)
-      toast.success('Carro reservado com sucesso!')
+      const newRentalRef = await push(rentalRef, newRental)
+      const rentalId = newRentalRef.key
+      console.log('Rental ID:', rentalId)
+      const carRentalRef = ref(database, `carros/${car.id}/alugueis`)
+      await push(carRentalRef, {
+        aluguelRef: rentalId,
+      })
+      toast.success('Carro alugado com sucesso')
     } catch (error) {
-      toast.error('Error reserving car:', error)
+      toast.error('Erro alugando o carro')
       console.error('Error reserving car:', error)
     }
   }

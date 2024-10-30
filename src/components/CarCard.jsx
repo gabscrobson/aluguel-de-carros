@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
+import { useAuth } from '../contexts/authContext'
+import { ref, update } from 'firebase/database'
+import { database } from '../firebase/firebase'
 
 export function CarCard({
   id,
@@ -9,8 +12,11 @@ export function CarCard({
   estado,
   precoAtual,
   onClick,
+  disabled = false,
 }) {
+  const { isAdmin } = useAuth()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isDisabled, setIsDisabled] = useState(disabled)
 
   const nextImage = () => {
     setCurrentImageIndex((prevIndex) =>
@@ -24,9 +30,44 @@ export function CarCard({
     )
   }
 
+  const handleDisable = async () => {
+    const carRef = ref(database, `carros/${id}`)
+    await update(carRef, { disabled: true })
+    setIsDisabled(true)
+  }
+
+  const handleEnable = async () => {
+    const carRef = ref(database, `carros/${id}`)
+    await update(carRef, { disabled: false })
+    setIsDisabled(false)
+  }
+
+  if (!isAdmin && isDisabled) {
+    return null
+  }
+
   return (
-    <div key={id} className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div
+      key={id}
+      className={`bg-white group rounded-lg shadow-md overflow-hidden ${
+        isAdmin && isDisabled ? 'bg-neutral-300' : ''
+      }`}
+    >
       <div className="relative">
+        {isAdmin && (
+          <button
+            onClick={isDisabled ? handleEnable : handleDisable}
+            className={`absolute top-2 right-2 p-1 rounded-full ${
+              isDisabled ? 'bg-green-500' : 'bg-red-500'
+            } text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+          >
+            {isDisabled ? (
+              <Check className="w-5 h-5" />
+            ) : (
+              <X className="w-5 h-5" />
+            )}
+          </button>
+        )}
         <img
           src={imagens[currentImageIndex]}
           alt={`${nome} - Imagem ${currentImageIndex + 1}`}
